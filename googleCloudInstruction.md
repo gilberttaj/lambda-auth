@@ -18,9 +18,11 @@ If you haven't already configured an OAuth consent screen for your project, you 
     *   Go to "APIs & Services" > "OAuth consent screen."
 
 2.  **Choose User Type:**
-    *   **Internal:** If your application is only for users within your Google Workspace organization. This might simplify the verification process.
-    *   **External:** If your application can be used by any Google user. This type may require app verification by Google if you use sensitive scopes, but for basic email/profile scopes for Cognito, it's usually straightforward.
-    *   Select the appropriate user type and click "Create."
+    *   **Internal:** If your application is only for users within your Google Workspace organization. This simplifies the verification process and makes the app available immediately to organization users.
+    *   **External:** If your application can be used by any Google user. 
+        *   When first created, an "External" app defaults to a **"Testing" publishing status**. In this status, only explicitly added **Test Users** (see step 7) can use the app.
+        *   To allow all Google users, the app must eventually be **"Published to production"**. This may require app verification by Google, especially if you use sensitive scopes (though typically not an issue for basic `email`, `profile`, `openid` used by Cognito).
+    *   Select the appropriate user type (e.g., "External" for testing with specific Google accounts initially) and click "Create."
 
 3.  **App Information:**
     *   **App name:** Enter a user-facing name for your application (e.g., "MyCompany LambdaAuth App"). This will be shown to users during the Google sign-in flow.
@@ -36,12 +38,16 @@ If you haven't already configured an OAuth consent screen for your project, you 
     *   For Cognito integration, you typically need `email`, `profile`, and `openid`. Cognito will request these. You don't usually need to add them explicitly here unless you have other specific needs.
     *   Click "Save and Continue."
 
-7.  **Test Users (Optional, primarily for External apps in testing mode):**
-    *   If your app is "External" and in "testing" publishing status, you can add test users who can use the app before it's verified.
-    *   Click "Save and Continue."
+7.  **Test Users (Required for 'External' apps in 'Testing' status):**
+    *   If you selected "External" for the user type, your app will initially be in a **"Testing" publishing status**. 
+    *   During this phase, you **must** add the Google account email addresses of users who need to test the Google sign-in functionality. Only these registered test users will be able to authenticate via Google.
+    *   Click "+ ADD USERS", enter their email addresses, and then click "Save and Continue."
 
 8.  **Summary:**
-    *   Review the summary. Click "Back to Dashboard" or "Publish App" (if you are ready and it's an external app that requires publishing). For internal apps, it's typically available immediately.
+    *   Review the summary. 
+    *   Click "Back to Dashboard". From the dashboard, you can manage your consent screen, including adding more test users or eventually preparing to publish the app.
+    *   For **Internal** apps, it's typically available to your organization users immediately.
+    *   For **External** apps in **Testing** status, only test users can access it. To make it available to all Google users, you would later need to go through the "Publish App" process from the OAuth consent screen dashboard (this may involve a verification step by Google, depending on the scopes used).
 
 **Part 2: Create OAuth 2.0 Client ID**
 
@@ -78,7 +84,7 @@ If you haven't already configured an OAuth consent screen for your project, you 
 
 **Important Notes:**
 *   **Security:** Keep your Client Secret confidential. Do not embed it in client-side code or commit it to version control. Cognito will store it securely.
-*   **Verification:** If you chose "External" for the user type and use sensitive scopes (beyond basic profile/email/openid), Google might require your app to undergo a verification process. This is usually not an issue for standard Cognito integration.
+*   **Verification & Publishing Status:** If you chose "External" for the user type, your app starts in a "Testing" publishing status, accessible only by designated test users. To allow all Google users, you'll need to "Publish" the app, which might involve a verification process by Google if you use sensitive scopes (beyond basic `profile`, `email`, `openid`). For standard Cognito integration with these basic scopes, verification is often straightforward or not required, but the app still needs to be explicitly published to move out of the "testing" state if you want general availability.
 *   **Enable APIs:** Ensure the "Google People API" (or older "Google+ API" if still referenced in some docs, though People API is current) is enabled for your project. It's usually enabled by default when you create OAuth credentials that would use it. You can check this under "APIs & Services" > "Library."
 
 You now have the Google Client ID and Client Secret needed for the AWS Cognito configuration.

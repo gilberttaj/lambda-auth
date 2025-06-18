@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'LambdaAuthProject SAM Template for AWS Cognito Google SSO Authentication
+  Handler with Private API Gateway.
+
+  '
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: 'Required: VPC ID for Lambda and Private API Gateway. Example: vpc-0123456789abcdef0'
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: 'Required: Comma-delimited list of at least two private subnet IDs
+      for Lambda. Example: subnet-0123...,subnet-0456...'
+  SecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+    Description: 'Required: Comma-delimited list of security group IDs for Lambda.
+      Example: sg-0123...'
+  ApiGatewayVpcEndpointId:
+    Type: String
+    Description: 'Required: VPC Endpoint ID for the Private API Gateway (interface
+      type for execute-api). Example: vpce-0123...'
+  AllowedEmailDomains:
+    Type: String
+    Description: 'Required: Comma-separated list of allowed email domains (e.g., mycompany.com,specific-department.mycompany.com)'
+    Default: example.com
+Resources:
+  CognitoAuthHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: CognitoAuthHandlerFunction
+      CodeUri: CognitoAuthHandlerFunction
+      Handler: helloworld.App::handleRequest
+      Runtime: java11
+      Architectures:
+      - x86_64
+      MemorySize: 512
+      Environment:
+        Variables:
+          ALLOWED_EMAIL_DOMAINS:
+            Ref: AllowedEmailDomains
+          JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+      VpcConfig:
+        SecurityGroupIds:
+          Ref: SecurityGroupIds
+        SubnetIds:
+          Ref: SubnetIds
+      Events:
+        AuthApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: PrivateApiGateway
+            Path: /auth
+            Method: post
+    Metadata:
+      SamResourceId: CognitoAuthHandlerFunction
+  PrivateApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: LambdaAuthPrivateApi
+      StageName: Prod
+      EndpointConfiguration:
+        Type: PRIVATE
+        VPCEndpointIds:
+        - Ref: ApiGatewayVpcEndpointId
+      Policy:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: '*'
+          Action: execute-api:Invoke
+          Resource:
+            Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*
+          Condition:
+            StringEquals:
+              aws:SourceVpce:
+                Ref: ApiGatewayVpcEndpointId
+        - Effect: Deny
+          Principal: '*'
+          Action: execute-api:Invoke
+          Resource:
+            Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*
+          Condition:
+            StringNotEquals:
+              aws:SourceVpce:
+                Ref: ApiGatewayVpcEndpointId
+Outputs:
+  CognitoAuthHandlerFunctionArn:
+    Description: Cognito Auth Handler Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - CognitoAuthHandlerFunction
+      - Arn
+  CognitoAuthHandlerFunctionIamRole:
+    Description: Implicit IAM Role created for Cognito Auth Handler function
+    Value:
+      Fn::GetAtt:
+      - CognitoAuthHandlerFunctionRole
+      - Arn
+  PrivateApiEndpoint:
+    Description: Private API Gateway endpoint URL (requires VPN/VPC access). Invoke
+      with POST to /auth
+    Value:
+      Fn::Sub: https://${PrivateApiGateway}.execute-api.${AWS::Region}.amazonaws.com/Prod/auth

@@ -1,11 +1,11 @@
 {
-    "aws_project_region": "YOUR_AWS_REGION",
-    "aws_cognito_identity_pool_id": "YOUR_COGNITO_IDENTITY_POOL_ID", // Optional if only using User Pools
-    "aws_cognito_region": "YOUR_AWS_REGION",
-    "aws_user_pools_id": "YOUR_COGNITO_USER_POOL_ID",
-    "aws_user_pools_web_client_id": "YOUR_COGNITO_APP_CLIENT_ID",
+    "aws_project_region": "ap-northeast-1",
+    "aws_cognito_identity_pool_id": "YOUR_COGNITO_IDENTITY_POOL_ID_PLACEHOLDER",
+    "aws_cognito_region": "ap-northeast-1",
+    "aws_user_pools_id": "YOUR_COGNITO_USER_POOL_ID_PLACEHOLDER",
+    "aws_user_pools_web_client_id": "YOUR_COGNITO_APP_CLIENT_ID_PLACEHOLDER",
     "oauth": {
-        "domain": "YOUR_COGNITO_USER_POOL_DOMAIN",
+        "domain": "YOUR_COGNITO_USER_POOL_DOMAIN_PLACEHOLDER",
         "scope": [
             "phone",
             "email",
@@ -13,12 +13,18 @@
             "profile",
             "aws.cognito.signin.user.admin"
         ],
-        "redirectSignIn": "http://localhost:5173/", // Or your deployed app's URL
-        "redirectSignOut": "http://localhost:5173/logout/", // Or your deployed app's URL
-        "responseType": "code" // or 'token'
+        "redirectSignIn": "http://localhost:5173/",
+        "redirectSignOut": "http://localhost:5173/logout/",
+        "responseType": "code"
     },
     "federationTarget": "COGNITO_USER_POOLS",
-    "aws_appsync_graphqlEndpoint": "YOUR_APPSYNC_ENDPOINT", // If using AppSync
-    "aws_appsync_region": "YOUR_AWS_REGION", // If using AppSync
-    "aws_appsync_authenticationType": "AMAZON_COGNITO_USER_POOLS" // If using AppSync
+    "API": {
+        "endpoints": [
+            {
+                "name": "PrivateAuthAPI",
+                "endpoint": "https://koc3wch4f0.execute-api.ap-northeast-1.amazonaws.com/Prod",
+                "region": "ap-northeast-1"
+            }
+        ]
+    }
 }

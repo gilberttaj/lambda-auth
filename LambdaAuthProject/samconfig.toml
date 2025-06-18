@@ -16,6 +16,12 @@ lint = true
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
+stack_name = "nais-cognito-auth"
+s3_prefix = "nais-cognito-auth"
+region = "ap-northeast-1"
+disable_rollback = true
+parameter_overrides = "VpcId=\"vpc-08c94413911d58148\" SubnetIds=\"subnet-0c8ae2a12f53eb5de,subnet-02b96cea953057ac5\" SecurityGroupIds=\"sg-0fa220fa096d3934e\" ApiGatewayVpcEndpointId=\"vpce-03e2fb9671d9d8aed\" AllowedEmailDomains=\"nais-mail.com,gmail.com,hipe.asia,gleamorb.co.jp\""
+image_repositories = []
 
 [default.package.parameters]
 resolve_s3 = true

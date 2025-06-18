@@ -32,17 +32,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: CognitoAuthHandlerFunction
-      # IMPORTANT: Ensure this CodeUri points to the directory containing your pom.xml and src for this function.
-      # If you renamed the 'HelloWorldFunction' folder created by 'sam init', update this.
-      # For example, if your Java code for this function is in 'LambdaAuthProject/src/CognitoAuthHandler',
-      # and pom.xml is in 'LambdaAuthProject/src/CognitoAuthHandler', then CodeUri would be 'src/CognitoAuthHandler'.
-      # Or, more commonly, if 'LambdaAuthProject' is the root of your SAM project, and you have a module/folder
-      # like 'CognitoAuthHandler' inside it (e.g., LambdaAuthProject/CognitoAuthHandler/pom.xml),
-      # then CodeUri would be 'CognitoAuthHandler/'.
-      # For the default 'sam init' structure, if you rename 'HelloWorldFunction' directory to 'CognitoAuthHandlerFunction',
-      # then CodeUri: CognitoAuthHandlerFunction
-      CodeUri: CognitoAuthHandlerFunction/ # Assuming you rename/use a folder named CognitoAuthHandlerFunction
-      Handler: helloworld.App::handleRequest # IMPORTANT: Update with your actual Java package and class.handler if different
+      CodeUri: CognitoAuthHandlerFunction/
+      Handler: helloworld.App::handleRequest
       Runtime: java11
       Architectures:
         - x86_64
@@ -55,58 +46,39 @@ Resources:
         SecurityGroupIds: !Ref SecurityGroupIds
         SubnetIds: !Ref SubnetIds
       Events:
-        AuthEvent:
+        AuthApi:
           Type: Api
           Properties:
-            Path: /auth # The endpoint path for your authentication logic
-            Method: POST # Assuming the client will POST data (e.g., token)
             RestApiId: !Ref PrivateApiGateway
-      # Policies:
-      #   - VPCAccessPolicy: {} # Grants Lambda permissions to operate within a VPC. SAM adds this if VpcConfig is present.
-      #   - AWSLambdaBasicExecutionRole # Managed policy for CloudWatch Logs. SAM adds this by default.
-      # Add other policies if your Lambda needs to interact with other AWS services (e.g., Cognito).
-      # Example for Cognito:
-      #   - CognitoUserPoolsDescribePolicy:
-      #       UserPoolId: !Ref YourCognitoUserPoolIdParameter # If you need to interact with a specific user pool
+            Path: /auth
+            Method: post
 
   PrivateApiGateway:
     Type: AWS::Serverless::Api
     Properties:
       Name: LambdaAuthPrivateApi
-      StageName: Prod # Or any stage name you prefer, e.g., v1
+      StageName: Prod
       EndpointConfiguration:
         Type: PRIVATE
         VPCEndpointIds:
           - !Ref ApiGatewayVpcEndpointId
-      # DefinitionBody: # For more complex APIs, you can define Swagger/OpenAPI here.
-      #   swagger: "2.0"
-      #   info:
-      #     title: "LambdaAuthPrivateApi"
-      #   paths:
-      #     /auth:
-      #       post:
-      #         x-amazon-apigateway-integration:
-      #           type: "aws_proxy"
-      #           httpMethod: "POST"
-      #           uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CognitoAuthHandlerFunction.Arn}/invocations"
-      #         responses: {}
-      # The 'Events' section in the Lambda function handles the integration for simple cases.
-      Auth:
-        DefaultAuthorizer: NONE # Assuming authentication is handled by Cognito/Google before this call, or within the Lambda.
-      AccessLogSetting:
-        DestinationArn: !GetAtt ApiLogsGroup.Arn
-        Format: '{ "requestId":"$context.requestId", "ip": "$context.identity.sourceIp", "caller":"$context.identity.caller", "user":"$context.identity.user", "requestTime":"$context.requestTime", "httpMethod":"$context.httpMethod", "resourcePath":"$context.resourcePath", "status":"$context.status", "protocol":"$context.protocol", "responseLength":"$context.responseLength" }'
-      MethodSettings: # Apply to all methods on all resources
-        - HttpMethod: '*'
-          ResourcePath: '/*'
-          LoggingLevel: INFO # Enable CloudWatch Logs for API Gateway execution
-          DataTraceEnabled: false # Set to true for verbose logging during development, false for production
-
-  ApiLogsGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/apigateway/${PrivateApiGateway}" # Dynamically named based on API
-      RetentionInDays: 14 # Adjust log retention as needed
+      Policy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: execute-api:Invoke
+            Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*'
+            Condition:
+              StringEquals:
+                aws:SourceVpce: !Ref ApiGatewayVpcEndpointId
+          - Effect: Deny
+            Principal: '*'
+            Action: execute-api:Invoke
+            Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*'
+            Condition:
+              StringNotEquals:
+                aws:SourceVpce: !Ref ApiGatewayVpcEndpointId
 
 Outputs:
   CognitoAuthHandlerFunctionArn:
